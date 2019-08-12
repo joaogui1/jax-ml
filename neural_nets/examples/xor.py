@@ -14,13 +14,7 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath('..'))
 from activations import sigmoid
-from losses import crossentropy as cse
-
-
-def loss(params, batch):
-    inputs, targets = batch
-    preds = net(params, inputs)
-    return cse(targets, preds)
+from losses import create_loss, crossentropy as cse
 
 
 Tanh = elementwise(np.tanh)
@@ -29,6 +23,8 @@ Sigmoid = elementwise(sigmoid)
 init_random_params, net = stax.serial(
     Dense(3), Tanh,
     Dense(1), Sigmoid)
+
+loss = create_loss(net, cse)
 
 def test_all_inputs(inputs, params):
     """Tests all possible xor inputs and outputs"""
