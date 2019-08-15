@@ -28,14 +28,14 @@ loss = create_loss(net, cse)
 
 def test_all_inputs(inputs, params):
     """Tests all possible xor inputs and outputs"""
+    print(net(params, inputs).ndim)
     predictions = [int(net(params, inp) > 0.5) for inp in inputs]
     for inp, out in zip(inputs, predictions):
         print(inp, '->', out)
     return (predictions == [onp.bitwise_xor(*inp) for inp in inputs])
 
 
-loss_grad = jax.jit(jax.grad(loss))
-# cse_grad = jax.grad(cse_loss)
+loss_grad = jax.jit(jax.vmap(jax.grad(loss), in_axes=(None, 0, 0), out_axes=0))
 
 if __name__ == "__main__":
 
@@ -51,17 +51,18 @@ if __name__ == "__main__":
     @jit
     def update(i, opt_state, batch):
         params = get_params(opt_state)
-        return opt_update(i, loss_grad(params, batch), opt_state)
+        x, y = batch
+        return opt_update(i, loss_grad(params, x, y), opt_state)
     print("\nStarting training...")
 
     for n in itertools.count():
         # Grab a single random input
-        x = inputs[onp.random.choice(inputs.shape[0])]
-        y = onp.bitwise_xor(x[0], x[1])
+        x = inputs[onp.random.choice(inputs.shape[0], size=4)]
+        y = onp.bitwise_xor(x[:, 0], x[:, 1])
         batch = (x, y)
 
         opt_state = update(next(itercount), opt_state, batch)
-      
+
         params = get_params(opt_state)
         # Every 100 iterations, check whether we've solved XOR
         if not n % 100:
