@@ -15,7 +15,7 @@ def test_eq(a,b): test(a,b,operator.eq,'==')
 
 from pathlib import Path
 from IPython.core.debugger import set_trace
-import datasets
+# import datasets
 import pickle, gzip, math, matplotlib as mpl
 import matplotlib.pyplot as plt
 import jax
