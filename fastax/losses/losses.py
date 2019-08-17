@@ -13,9 +13,11 @@ def create_loss(net, loss):
         return loss(targets, preds)
     return loss_fn
 
-def batch_loss(net, loss):
-    def loss_fn(params, inputs, targets):
-        preds = net(params, inputs)
-        losses = vmap((loss))(targets, preds)
-        return np.mean(losses)
-    return loss_fn
+def batch_loss(net):
+    def create_batched_loss(loss):
+        def loss_fn(params, inputs, targets):
+            preds = net(params, inputs)
+            losses = vmap((loss))(targets, preds)
+            return np.mean(losses)
+        return loss_fn
+    return create_batched_loss
