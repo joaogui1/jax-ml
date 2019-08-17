@@ -1,4 +1,6 @@
+from jax import vmap
 import jax.numpy as np
+
 
 def mean_squared_error(y, y_pred): return np.mean(np.linalg.norm(y - y_pred)**2, axis=-1)
 def mean_absolute_error(y, y_pred): return np.mean(np.linalg.norm(y - y_pred, 1), axis=-1)
@@ -9,4 +11,11 @@ def create_loss(net, loss):
     def loss_fn(params, inputs, targets):
         preds = net(params, inputs)
         return loss(targets, preds)
+    return loss_fn
+
+def batch_loss(net, loss):
+    def loss_fn(params, inputs, targets):
+        preds = net(params, inputs)
+        losses = vmap((loss))(targets, preds)
+        return np.mean(losses)
     return loss_fn
