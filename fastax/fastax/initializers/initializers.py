@@ -59,8 +59,14 @@ glorot_uniform = variance_scaling(1.0, "fan_avg", "uniform")
 glorot_normal = variance_scaling(1.0, "fan_avg", "truncated_normal")
 lecun_uniform = variance_scaling(1.0, "fan_in", "uniform")
 lecun_normal = variance_scaling(1.0, "fan_in", "truncated_normal")
-kaiming_uniform = variance_scaling(2.0, "fan_in", "uniform")
-kaiming_normal = variance_scaling(2.0, "fan_in", "truncated_normal")
+
+
+def kaiming_normal(param = 0.):
+    return variance_scaling(2.0 / np.sqrt(1 + param**2), "fan_in", "truncated_normal")
+
+
+def kaiming_uniform(param = 0.):
+    return variance_scaling(2.0 / np.sqrt(1 + param**2), "fan_in", "uniform")
 
 
 def orthogonal(scale=1.):

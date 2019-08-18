@@ -151,7 +151,7 @@ Conv1DTranspose = functools.partial(GeneralConvTranspose, ("NHC", "HIO", "NHC"))
 ConvTranspose = functools.partial(GeneralConvTranspose, ("NHWC", "HWIO", "NHWC"))
 
 
-def LSTM(out_dim, W_init=kaiming_uniform, b_init=normal()):
+def LSTM(out_dim, W_init=glorot_uniform, b_init=normal()):
     def init_fun(rng, input_shape):
         k1, k2 = random.split(rng)
         cell, hidden = b_init(k1, (out_dim,)), b_init(k2, (out_dim,))
