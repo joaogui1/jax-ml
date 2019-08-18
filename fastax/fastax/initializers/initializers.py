@@ -28,36 +28,39 @@ def normal(stddev=1.):
 
 
 def variance_scaling(scale, mode, distribution):
+    if scale <= 0.:
+        raise ValueError(f"scale must be positive float, {scale} given")
+    if mode not in {"fan_in", "fan_out", "fan_avg"}:
+        raise ValueError(f"Invalid mode argument: {mode}, must be either fan_in, fan_out or fan_avg")
+
     def init(rng, shape, dtype=np.float32):
         fan_in, fan_out = _get_fans(shape)
-        if scale <= 0.:
-            raise ValueError(f"scale must be positive float, {scale} given")
-        if mode not in {"fan_in", "fan_out", "fan_avg"}:
-            raise ValueError(f"Invalid mode argument: {mode}, must be either fan_in, fan_out or fan_avg")
+        gain = scale
         if mode == "fan_in":
-            scale /= fan_in
+            gain /= fan_in
         elif mode == "fan_out":
-            scale /= fan_out
+            gain /= fan_out
         elif mode == "fan_avg":
-            scale /= (fan_in + fan_out) / 2
+            gain /= (fan_in + fan_out) / 2
         if distribution == "truncated_normal":
             # constant from scipy.stats.truncnorm.std(a=-2, b=2, loc=0., scale=1.)
-            stddev = np.sqrt(scale) / .87962566103423978
+            stddev = np.sqrt(gain) / .87962566103423978
             return random.truncated_normal(rng, -2, 2, shape, dtype) * stddev
         elif distribution == "normal":
-            return random.normal(rng, shape, dtype) * np.sqrt(scale)
+            return random.normal(rng, shape, dtype) * np.sqrt(gain)
         elif distribution == "uniform":
-            lim = np.sqrt(3. * scale)
+            lim = np.sqrt(3. * gain)
             return random.uniform(rng, shape, dtype, minval=-lim, maxval=lim)
         else:
             raise ValueError("invalid distribution for variance scaling initializer")
+    return init
 
 glorot_uniform = variance_scaling(1.0, "fan_avg", "uniform")
 glorot_normal = variance_scaling(1.0, "fan_avg", "truncated_normal")
 lecun_uniform = variance_scaling(1.0, "fan_in", "uniform")
 lecun_normal = variance_scaling(1.0, "fan_in", "truncated_normal")
-kaiming_uniform = he_uniform = variance_scaling(2.0, "fan_in", "uniform")
-kaiming_normal = he_normal = variance_scaling(2.0, "fan_in", "truncated_normal")
+kaiming_uniform = variance_scaling(2.0, "fan_in", "uniform")
+kaiming_normal = variance_scaling(2.0, "fan_in", "truncated_normal")
 
 
 def orthogonal(scale=1.):
@@ -91,3 +94,4 @@ def orthogonal(scale=1.):
         if num_rows < num_cols:
             q = np.transpose(q)
         return scale * np.reshape(q, shape)
+    return init
