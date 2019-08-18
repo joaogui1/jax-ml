@@ -38,10 +38,9 @@ from ..initializers import *
 #   apply_fun: takes params, inputs, and an rng key and applies the layer.
 
 
-def Dense(out_dim, W_init=kaiming_uniform(), b_init=None):
+def Dense(out_dim, W_init=kaiming_uniform, b_init=None):
     """Layer constructor function for a dense (fully-connected) layer."""
-    if b_init is None:
-        b_init = randn(1. / np.sqrt(out_dim))
+    b_init = b_init or normal(1. / np.sqrt(out_dim))
     def init_fun(rng, input_shape):
         output_shape = input_shape[:-1] + (out_dim,)
         k1, k2 = random.split(rng)
@@ -68,7 +67,7 @@ def GeneralConv(
     lhs_spec, rhs_spec, out_spec = dimension_numbers
     one = (1,) * len(filter_shape)
     strides = strides or one
-    W_init = W_init or kaiming_uniform(rhs_spec.index("O"), rhs_spec.index("I"))
+    W_init = W_init or kaiming_uniform
 
     def init_fun(rng, input_shape):
         filter_shape_iter = iter(filter_shape)
@@ -88,7 +87,7 @@ def GeneralConv(
         k1, k2 = random.split(rng)
 
         if b_init is None:
-            b_init = randn(1. / np.sqrt(np.prod(kernel_shape[:-1])))
+            b_init = normal(1. / np.sqrt(np.prod(kernel_shape[:-1])))
         W, b = W_init(k1, kernel_shape), b_init(k2, bias_shape)
         return output_shape, (W, b)
 
@@ -114,13 +113,13 @@ def GeneralConvTranspose(
     strides=None,
     padding="VALID",
     W_init=None,
-    b_init=randn(1e-6),
+    b_init=normal(1e-6),
 ):
     """Layer construction function for a general transposed-convolution layer."""
     lhs_spec, rhs_spec, out_spec = dimension_numbers
     one = (1,) * len(filter_shape)
     strides = strides or one
-    W_init = W_init or glorot(rhs_spec.index("O"), rhs_spec.index("I"))
+    W_init = W_init or kaiming_uniform
 
     def init_fun(rng, input_shape):
         filter_shape_iter = iter(filter_shape)
@@ -152,7 +151,7 @@ Conv1DTranspose = functools.partial(GeneralConvTranspose, ("NHC", "HIO", "NHC"))
 ConvTranspose = functools.partial(GeneralConvTranspose, ("NHWC", "HWIO", "NHWC"))
 
 
-def LSTM(out_dim, units, W_init=kaiming_uniform(), b_init=randn()):
+def LSTM(out_dim, units, W_init=kaiming_uniform, b_init=normal()):
     def init_fun(rng, input_shape):
         k1, k2 = random.split(rng)
         cell, hidden = b_init(k1, (out_dim,)), b_init(k2, (out_dim,))
