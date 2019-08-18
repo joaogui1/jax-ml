@@ -1,5 +1,5 @@
-import .activations
-import .initializers
-import .layers
-import .losses
-import .optimizers
+from .activations import activations
+from .initializers import initializers
+from .layers import layers
+from .losses import losses
+from .optimizers import optimizers
