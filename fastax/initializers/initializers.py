@@ -28,7 +28,7 @@ def normal(stddev=1.):
 
 
 def variance_scaling(scale, mode, distribution):
-    def init(key, shape, dtype=np.float32):
+    def init(rng, shape, dtype=np.float32):
         fan_in, fan_out = _get_fans(shape)
         if scale <= 0.:
             raise ValueError(f"scale must be positive float, {scale} given")
@@ -43,12 +43,12 @@ def variance_scaling(scale, mode, distribution):
         if distribution == "truncated_normal":
             # constant from scipy.stats.truncnorm.std(a=-2, b=2, loc=0., scale=1.)
             stddev = np.sqrt(scale) / .87962566103423978
-            return random.truncated_normal(key, -2, 2, shape, dtype) * stddev
+            return random.truncated_normal(rng, -2, 2, shape, dtype) * stddev
         elif distribution == "normal":
-            return random.normal(key, shape, dtype) * np.sqrt(scale)
+            return random.normal(rng, shape, dtype) * np.sqrt(scale)
         elif distribution == "uniform":
             lim = np.sqrt(3. * scale)
-            return random.uniform(key, shape, dtype, minval=-lim, maxval=lim)
+            return random.uniform(rng, shape, dtype, minval=-lim, maxval=lim)
         else:
             raise ValueError("invalid distribution for variance scaling initializer")
 
@@ -58,3 +58,20 @@ lecun_uniform = variance_scaling(1.0, "fan_in", "uniform")
 lecun_normal = variance_scaling(1.0, "fan_in", "truncated_normal")
 kaiming_uniform = he_uniform = variance_scaling(2.0, "fan_in", "uniform")
 kaiming_normal = he_normal = variance_scaling(2.0, "fan_in", "truncated_normal")
+
+
+def orthogonal(scale=1.):
+    def init(rng, shape, dtype=np.float32):
+        if len(shape) < 2:
+            raise ValueError("The tensor to initialize must be at least two-dimensional")
+        num_rows = np.prod(shape[:-1])
+        num_cols = shape[-1]
+        flat_shape = (max(num_rows, num_cols), max(num_rows, num_cols))
+
+        random_mat = random.normal(rng, flat_shape, dtype)
+        q, r = np.linalg.qr(random_mat)
+        d = np.diag(r)
+        q *= np.sign(d)
+        if num_rows < num_cols:
+            q = np.transpose(q)
+        return scale * np.reshape(q, shape)
