@@ -96,8 +96,7 @@ def GeneralConv(
         return (
             lax.conv_general_dilated(
                 inputs, W, strides, padding, one, one, dimension_numbers
-            )
-            + b
+            ) + b
         )
 
     return init_fun, apply_fun
@@ -105,6 +104,44 @@ def GeneralConv(
 
 Conv1D = functools.partial(GeneralConv, ("NHC", "HIO", "NHC"))
 Conv = functools.partial(GeneralConv, ("NHWC", "HWIO", "NHWC"))
+
+def DepthwiseConv2D(out_chan,
+                    filter_shape,
+                    strides=None,
+                    padding="VALID",
+                    W_init=None,
+                    b_init=None,
+                    ):
+    one = (1,) * len(filter_shape)
+    strides = strides or one
+    W_init = W_init or kaiming_uniform()
+
+    def init_fun(rng, input_shape):
+        kernel_shape = (filter_shape[0], filter_shape[1], 1,
+                        out_chan * input_shape[3])
+        output_shape = lax.conv_general_shape_tuple(
+            input_shape, kernel_shape, strides, padding,
+            ("NHWC", "HWIO", "NHWC")
+        )
+        bias_shape = tuple(input_shape[0], 1, 1, out_chan * input_shape[3])
+        k1, k2 = random.split(rng)
+
+        if b_init is None:
+            b_init = normal(1. / np.sqrt(np.prod(kernel_shape[:-1])))
+        W, b = W_init(k1, kernel_shape), b_init(k2, bias_shape)
+        return output_shape, (W, b)
+
+    def apply_fun(params, inputs, **kwargs):
+        W, b = params
+        return (
+            lax.conv_general_dilated(
+                inputs, W, strides, padding, one, one, 
+                ("NHWC", "HWIO", "NHWC"), feature_group_count=inputs[1]
+            ) + b
+        )
+
+    return init_fun, apply_fun
+
 
 
 def GeneralConvTranspose(
