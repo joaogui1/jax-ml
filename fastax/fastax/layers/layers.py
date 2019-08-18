@@ -38,7 +38,7 @@ from ..initializers import *
 #   apply_fun: takes params, inputs, and an rng key and applies the layer.
 
 
-def Dense(out_dim, W_init=kaiming_uniform, b_init=None):
+def Dense(out_dim, W_init=kaiming_uniform(), b_init=None):
     """Layer constructor function for a dense (fully-connected) layer."""
     b_init = b_init or normal(1. / np.sqrt(out_dim))
     def init_fun(rng, input_shape):
@@ -67,7 +67,7 @@ def GeneralConv(
     lhs_spec, rhs_spec, out_spec = dimension_numbers
     one = (1,) * len(filter_shape)
     strides = strides or one
-    W_init = W_init or kaiming_uniform
+    W_init = W_init or kaiming_uniform()
 
     def init_fun(rng, input_shape):
         filter_shape_iter = iter(filter_shape)
@@ -119,7 +119,7 @@ def GeneralConvTranspose(
     lhs_spec, rhs_spec, out_spec = dimension_numbers
     one = (1,) * len(filter_shape)
     strides = strides or one
-    W_init = W_init or kaiming_uniform
+    W_init = W_init or kaiming_uniform()
 
     def init_fun(rng, input_shape):
         filter_shape_iter = iter(filter_shape)
