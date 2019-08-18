@@ -151,36 +151,36 @@ Conv1DTranspose = functools.partial(GeneralConvTranspose, ("NHC", "HIO", "NHC"))
 ConvTranspose = functools.partial(GeneralConvTranspose, ("NHWC", "HWIO", "NHWC"))
 
 
-def LSTM(out_dim, units, W_init=kaiming_uniform, b_init=normal()):
+def LSTM(out_dim, W_init=kaiming_uniform, b_init=normal()):
     def init_fun(rng, input_shape):
         k1, k2 = random.split(rng)
         cell, hidden = b_init(k1, (out_dim,)), b_init(k2, (out_dim,))
 
         k1, k2, k3 = random.split(k1, num=3)
         forget_W, forget_U, forget_b = (
-            W_init(k1, (input_shape[:-1], out_dim)),
-            W_init(k2, (input_shape[:-1], out_dim)),
+            W_init(k1, (*input_shape[:-1], out_dim)),
+            W_init(k2, (out_dim, out_dim)),
             b_init(k3, (out_dim,)),
         )
 
         k1, k2, k3 = random.split(k1, num=3)
         in_W, in_U, in_b = (
-            W_init(k1, (input_shape[:-1], out_dim)),
-            W_init(k2, (input_shape[:-1], out_dim)),
+            W_init(k1, (*input_shape[:-1], out_dim)),
+            W_init(k2, (out_dim, out_dim)),
             b_init(k3, (out_dim,)),
         )
 
         k1, k2, k3 = random.split(k1, num=3)
         out_W, out_U, out_b = (
-            W_init(k1, (input_shape[:-1], out_dim)),
-            W_init(k2, (input_shape[:-1], out_dim)),
+            W_init(k1, (*input_shape[:-1], out_dim)),
+            W_init(k2, (out_dim, out_dim)),
             b_init(k3, (out_dim,)),
         )
 
         k1, k2, k3 = random.split(k1, num=3)
         change_W, change_U, change_b = (
-            W_init(k1, (input_shape[:-1], out_dim)),
-            W_init(k2, (input_shape[:-1], out_dim)),
+            W_init(k1, (*input_shape[:-1], out_dim)),
+            W_init(k2, (out_dim, out_dim)),
             b_init(k3, (out_dim,)),
         )
 
@@ -196,25 +196,25 @@ def LSTM(out_dim, units, W_init=kaiming_uniform, b_init=normal()):
             ),
         )
 
-    def apply_fun(params, inputs, cell, hidden):
+    def apply_fun(params, inputs, **kwargs):
         (cell, hidden), (forget_W, forget_U, forget_b), (in_W, in_U, in_b), (
             out_W,
             out_U,
             out_b,
         ), (change_W, change_U, change_b) = params
 
-        for _ in range(units):
-            input_gate = sigmoid(np.dot(inputs, in_W) + np.dot(hidden, in_U) + in_b)
+        for inp in inputs:
+            input_gate = sigmoid(np.dot(inp, in_W) + np.dot(hidden, in_U) + in_b)
             change_gate = np.tanh(
-                np.dot(inputs, change_W) + np.dot(hidden, change_U) + change_b
+                np.dot(inp, change_W) + np.dot(hidden, change_U) + change_b
             )
             forget_gate = sigmoid(
-                np.dot(inputs, forget_W) + np.dot(hidden, forget_U) + forget_b
+                np.dot(inp, forget_W) + np.dot(hidden, forget_U) + forget_b
             )
 
             cell = np.multiply(change_gate, input_gate) + np.multiply(cell, forget_gate)
 
-            output_gate = sigmoid(np.dot(inputs, out_W) + np.dot(hidden, out_U) + out_b)
+            output_gate = sigmoid(np.dot(inp, out_W) + np.dot(hidden, out_U) + out_b)
             output = np.multiply(output_gate, np.tanh(cell))
             hidden = output
 
