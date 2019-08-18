@@ -103,6 +103,7 @@ def GeneralConv(
     return init_fun, apply_fun
 
 
+Conv1D = functools.partial(GeneralConv, ("NHC", "HIO", "NHC"))
 Conv = functools.partial(GeneralConv, ("NHWC", "HWIO", "NHWC"))
 
 
@@ -378,7 +379,8 @@ def FanInConcat(axis=-1):
 
 
 def Dropout(rate, mode="train"):
-    """Layer construction function for a dropout layer with given rate."""
+    """Layer construction function for a dropout layer, turning off
+        a the weights with given rate."""
 
     def init_fun(rng, input_shape):
         return input_shape, ()
@@ -394,8 +396,8 @@ def Dropout(rate, mode="train"):
             )
             raise ValueError(msg)
         if mode == "train":
-            keep = random.bernoulli(rng, rate, inputs.shape)
-            return np.where(keep, inputs / rate, 0)
+            keep = random.bernoulli(rng, 1 - rate, inputs.shape)
+            return np.where(keep, inputs / (1. - rate), 0.)
         else:
             return inputs
 
