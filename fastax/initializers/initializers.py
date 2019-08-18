@@ -61,6 +61,22 @@ kaiming_normal = he_normal = variance_scaling(2.0, "fan_in", "truncated_normal")
 
 
 def orthogonal(scale=1.):
+    """Initializer that generates an orthogonal matrix.
+    If the shape of the tensor to initialize is two-dimensional, it is initialized
+    with an orthogonal matrix obtained from the QR decomposition of a matrix of
+    random numbers drawn from a normal distribution.
+    If the matrix has fewer rows than columns then the output will have orthogonal
+    rows. Otherwise, the output will have orthogonal columns.
+    If the shape of the tensor to initialize is more than two-dimensional,
+    a matrix of shape `(shape[0] * ... * shape[n - 2], shape[n - 1])`
+    is initialized, where `n` is the length of the shape vector.
+    The matrix is subsequently reshaped to give a tensor of the desired shape.
+    Args:
+        scale: multiplicative factor to apply to the orthogonal matrix
+    References:
+        [Saxe et al., 2014](https://openreview.net/forum?id=_wzZwKpTDF_9C)
+        ([pdf](https://arxiv.org/pdf/1312.6120.pdf))
+    """
     def init(rng, shape, dtype=np.float32):
         if len(shape) < 2:
             raise ValueError("The tensor to initialize must be at least two-dimensional")
