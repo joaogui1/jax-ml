@@ -123,7 +123,7 @@ def DepthwiseConv2D(out_chan,
             input_shape, kernel_shape, strides, padding,
             ("NHWC", "HWIO", "NHWC")
         )
-        bias_shape = tuple(input_shape[0], 1, 1, out_chan * input_shape[3])
+        bias_shape = tuple(input_shape[0], out_chan * input_shape[3])
         k1, k2 = random.split(rng)
 
         if b_init is None:
