@@ -1,8 +1,10 @@
 """
 This module contains a CART Predictor, the base of our algorithm
 """
-from jax import jit
+
 import jax.numpy as np
+from jax import jit, pmap
+from functools import partial
 
 
 class TreePredictor:
@@ -22,13 +24,24 @@ class TreePredictor:
     def get_max_depth(self):
         self.nodes['depth'].max().astype(np.int32)
 
-    def predict_binned(self, binned_data, out=None):
+    def predict_binned(self, binned_data):
         if binned_data.dtype == np.uint8:
             raise TypeError('binned date should be an 8 bit integer')
-        if out is None:
-            out = np.empty(binned_data.shape[0], dtype=np.float32)
-        _predict_binned(self.nodes, binned_data, out)
+        return _predict_binned(self.nodes, binned_data)
 
+    def predict(self, X):
+        if not self.has_thresholds:
+            raise ValueError(
+                'This predictor does not have numerical.'
+                'thresholds so it can only predict pre-binned data.')
+
+        if X.dtype == np.uint8:
+            raise ValueError(
+                'X has uint8 dtype: use estimator.predict(X) if X is '
+                'pre-binned, or convert X to a float32 dtype to be treated '
+                'as numerical data'
+            )
+        return _predict_from_numeric_data(self.nodes, X)
 
 @jit
 def _predict_one_binned(nodes, binned_data):
@@ -42,8 +55,21 @@ def _predict_one_binned(nodes, binned_data):
             node = nodes[node['right']]
 
 
-#TODO use pmap
 @jit
-def _predict_binned(nodes, binned_data, out):
-    for i in range(binned_data.shape[0]):
-        out[i] = _predict_one_binned(nodes, binned_data[i])
+def _predict_binned(nodes, binned_data):
+    return pmap(partial(_predict_one_binned, nodes=nodes))(binned_data)
+
+@jit
+def _predict_one_from_numeric_data(nodes, numeric_data):
+    node = nodes[0]
+    while True:
+        if node['is_leaf']:
+            return node['value']
+        if numeric_data[node['feature_idx']] <= node['threshold']:
+            node = nodes[node['left']]
+        else:
+            node = nodes[node['right']]
+
+@jit
+def _predict_from_numeric_data(nodes, binned_data):
+    return pmap(partial(_predict_one_from_numeric_data, nodes=nodes))(binned_data)
