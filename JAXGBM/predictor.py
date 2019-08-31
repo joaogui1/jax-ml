@@ -46,13 +46,12 @@ class TreePredictor:
 @jit
 def _predict_one_binned(nodes, binned_data):
     node = nodes[0]
-    while True:
-        if node['is_leaf']:
-            return node['value']
+    while not node['is_leaf']:
         if binned_data[node['feature_idx']] <= node['bin_threshold']:
             node = nodes[node['left']]
         else:
             node = nodes[node['right']]
+    return node['value']
 
 
 @jit
@@ -62,13 +61,12 @@ def _predict_binned(nodes, binned_data):
 @jit
 def _predict_one_from_numeric_data(nodes, numeric_data):
     node = nodes[0]
-    while True:
-        if node['is_leaf']:
-            return node['value']
+    while not node['is_leaf']:
         if numeric_data[node['feature_idx']] <= node['threshold']:
             node = nodes[node['left']]
         else:
             node = nodes[node['right']]
+    return node['value']
 
 @jit
 def _predict_from_numeric_data(nodes, binned_data):
