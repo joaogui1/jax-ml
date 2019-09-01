@@ -14,7 +14,7 @@ from sklearn.utils import check_array
 from sklearn.base import BaseEstimator, TransformerMixin
 
 
-def _find_binnnig_thresholds(data,
+def _find_binning_thresholds(data,
                              max_bins=256,
                              subsample=200000,
                              random_state=None):
@@ -73,3 +73,69 @@ def _map_num_col_to_bins(data, binning_thresholds):
     """Binary search to the find the bin index for each value in data."""
     return pmap(partial(_map_one_col,
                         binning_thresholds=binning_thresholds))(data)
+
+class BinMapper(BaseEstimator, TransformerMixin):
+    """Transformer that maps a dataset into integer-valued bins.
+    The bins are created in a feature-wise fashion, with equally-spaced
+    quantiles.
+    Large datasets are subsampled, but the feature-wise quantiles should
+    remain stable.
+    If the number of unique values for a given feature is less than
+    ``max_bins``, then the unique values of this feature are used instead of
+    the quantiles.
+    Parameters
+    ----------
+    max_bins : int, optional (default=256)
+        The maximum number of bins to use. If for a given feature the number of
+        unique values is less than ``max_bins``, then those unique values
+        will be used to compute the bin thresholds, instead of the quantiles.
+    subsample : int or None, optional (default=1e5)
+        If ``n_samples > subsample``, then ``sub_samples`` samples will be
+        randomly choosen to compute the quantiles. If ``None``, the whole data
+        is used.
+    random_state: int or numpy.random.RandomState or None, \
+        optional (default=None)
+        Pseudo-random number generator to control the random sub-sampling.
+        See `scikit-learn glossary
+        <https://scikit-learn.org/stable/glossary.html#term-random-state>`_.
+    """
+    def __init__(self, max_bins=256, subsample=int(1e5), random_state=None):
+        self.max_bins = max_bins
+        self.subsample = subsample
+        self.random_state = random_state
+
+    def fit(self, X, y=None):
+        """Fit data X by computing the binning thresholds.
+        Parameters
+        ----------
+        X: array-like
+            The data to bin
+        Returns
+        -------
+        self : object
+        """
+        X = check_array(X)
+        self.numerical_thresholds_ = _find_binning_thresholds(
+            X, self.max_bins, subsample=self.subsample,
+            random_state=self.random_state)
+
+        self.n_bins_per_feature_ = np.array(
+            [thresholds.shape[0] + 1
+             for thresholds in self.numerical_thresholds_],
+            dtype=np.uint32
+        )
+
+        return self
+
+    def transform(self, X):
+        """Bin data X.
+        Parameters
+        ----------
+        X: array-like
+            The data to bin
+        Returns
+        -------
+        X_binned : array-like
+            The binned data
+        """
+        return _map_to_bins(X, binning_thresholds=self.numerical_thresholds_)
